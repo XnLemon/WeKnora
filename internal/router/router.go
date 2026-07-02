@@ -107,7 +107,7 @@ func NewRouter(params RouterParams) *gin.Engine {
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"*"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-API-Key", "X-Request-ID", "X-Tenant-ID", "X-Embed-Session", "X-External-User-ID", "X-External-User-Token"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-API-Key", "X-Request-ID", "X-Tenant-ID", "X-User-Id", "X-Tenant-Id", "X-Trace-Id", "X-Embed-Session", "X-External-User-ID", "X-External-User-Token"},
 		ExposeHeaders:    []string{"Content-Length", "Access-Control-Allow-Origin"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
@@ -119,6 +119,9 @@ func NewRouter(params RouterParams) *gin.Engine {
 	r.Use(middleware.Logger())
 	r.Use(middleware.Recovery())
 	r.Use(middleware.ErrorHandler())
+	if params.Config != nil {
+		r.Use(middleware.ModelHeaderForwarding(params.Config.ModelHeaders))
+	}
 
 	// 健康检查（不需要认证）
 	r.GET("/health", func(c *gin.Context) {

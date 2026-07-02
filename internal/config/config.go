@@ -17,28 +17,41 @@ import (
 
 // Config 应用程序总配置
 type Config struct {
-	Conversation    *ConversationConfig    `yaml:"conversation"     json:"conversation"`
-	Server          *ServerConfig          `yaml:"server"           json:"server"`
-	KnowledgeBase   *KnowledgeBaseConfig   `yaml:"knowledge_base"   json:"knowledge_base"`
-	Tenant          *TenantConfig          `yaml:"tenant"           json:"tenant"`
-	Auth            *AuthConfig            `yaml:"auth"             json:"auth"`
-	Audit           *AuditConfig           `yaml:"audit"            json:"audit"`
-	OIDCAuth        *OIDCAuthConfig        `yaml:"oidc_auth"        json:"oidc_auth"`
-	Models          []ModelConfig          `yaml:"models"           json:"models"`
-	VectorDatabase  *VectorDatabaseConfig  `yaml:"vector_database"  json:"vector_database"`
-	DocReader       *DocReaderConfig       `yaml:"docreader"        json:"docreader"`
-	StreamManager   *StreamManagerConfig   `yaml:"stream_manager"   json:"stream_manager"`
-	ExtractManager  *ExtractManagerConfig  `yaml:"extract"          json:"extract"`
-	WebSearch       *WebSearchConfig       `yaml:"web_search"       json:"web_search"`
-	PromptTemplates *PromptTemplatesConfig `yaml:"prompt_templates" json:"prompt_templates"`
-	IM              *IMConfig              `yaml:"im"               json:"im"`
-	Agent           *AgentConfig           `yaml:"agent"            json:"agent"`
+	Conversation    *ConversationConfig          `yaml:"conversation"     json:"conversation"`
+	Server          *ServerConfig                `yaml:"server"           json:"server"`
+	KnowledgeBase   *KnowledgeBaseConfig         `yaml:"knowledge_base"   json:"knowledge_base"`
+	Tenant          *TenantConfig                `yaml:"tenant"           json:"tenant"`
+	Auth            *AuthConfig                  `yaml:"auth"             json:"auth"`
+	Audit           *AuditConfig                 `yaml:"audit"            json:"audit"`
+	OIDCAuth        *OIDCAuthConfig              `yaml:"oidc_auth"        json:"oidc_auth"`
+	Models          []ModelConfig                `yaml:"models"           json:"models"`
+	VectorDatabase  *VectorDatabaseConfig        `yaml:"vector_database"  json:"vector_database"`
+	DocReader       *DocReaderConfig             `yaml:"docreader"        json:"docreader"`
+	StreamManager   *StreamManagerConfig         `yaml:"stream_manager"   json:"stream_manager"`
+	ExtractManager  *ExtractManagerConfig        `yaml:"extract"          json:"extract"`
+	WebSearch       *WebSearchConfig             `yaml:"web_search"       json:"web_search"`
+	PromptTemplates *PromptTemplatesConfig       `yaml:"prompt_templates" json:"prompt_templates"`
+	IM              *IMConfig                    `yaml:"im"               json:"im"`
+	Agent           *AgentConfig                 `yaml:"agent"            json:"agent"`
+	ModelHeaders    *ModelHeaderForwardingConfig `yaml:"model_header_forwarding" json:"model_header_forwarding"`
 	// FrontendBaseURL is the externally-visible origin of the SPA, used
 	// to compose absolute share-link URLs. Empty falls back to a host-
 	// relative URL ("/register?token=…") which the SPA then resolves
 	// against window.location.origin — fine for typical single-origin
 	// deployments. Sourced from FRONTEND_BASE_URL env at startup.
 	FrontendBaseURL string `yaml:"frontend_base_url" json:"frontend_base_url"`
+}
+
+// ModelHeaderForwardingConfig controls request-scoped HTTP headers forwarded
+// to downstream model providers for gateway attribution and tracing.
+type ModelHeaderForwardingConfig struct {
+	Enabled bool `yaml:"enabled" json:"enabled"`
+	// Allow is the normal allowlist. Reserved provider headers in this list
+	// are ignored unless they are also present in ReservedAllow.
+	Allow []string `yaml:"allow" json:"allow"`
+	// ReservedAllow is an explicit opt-in for sensitive provider headers such
+	// as Authorization. Keep empty unless an upstream model gateway requires it.
+	ReservedAllow []string `yaml:"reserved_allow" json:"reserved_allow"`
 }
 
 // AgentConfig represents the global agent settings.

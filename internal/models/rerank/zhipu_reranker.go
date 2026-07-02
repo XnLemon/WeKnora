@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/Tencent/WeKnora/internal/logger"
+	"github.com/Tencent/WeKnora/internal/types"
 	secutils "github.com/Tencent/WeKnora/internal/utils"
 )
 
@@ -100,6 +101,7 @@ func (r *ZhipuReranker) Rerank(ctx context.Context, query string, documents []st
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", r.apiKey))
 	secutils.ApplyCustomHeaders(req, r.customHeaders)
+	types.ApplyModelForwardHeadersToRequest(ctx, req)
 
 	logger.Debugf(ctx, "%s", buildRerankRequestDebug(r.modelName, r.baseURL, query, documents))
 

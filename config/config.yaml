@@ -3,6 +3,17 @@ server:
   port: 8080
   host: "0.0.0.0"
 
+# Forward an operator-approved subset of inbound API headers to downstream
+# model providers. Reserved provider/auth headers such as Authorization require
+# explicit opt-in via reserved_allow.
+model_header_forwarding:
+  enabled: false
+  allow:
+    - X-User-Id
+    - X-Tenant-Id
+    - X-Trace-Id
+  reserved_allow: []
+
 # Conversation service configuration
 # NOTE: Prompt content is resolved from prompt_templates/ YAML files via xxx_id fields.
 # Set the _id to the template ID you want; the system will load its content at startup.

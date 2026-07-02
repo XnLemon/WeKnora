@@ -12,6 +12,7 @@ import (
 
 	"github.com/Tencent/WeKnora/internal/logger"
 	"github.com/Tencent/WeKnora/internal/models/provider"
+	"github.com/Tencent/WeKnora/internal/types"
 	secutils "github.com/Tencent/WeKnora/internal/utils"
 	openai "github.com/sashabaranov/go-openai"
 )
@@ -81,6 +82,7 @@ func NewRemoteAPIVLM(config *Config) (*RemoteAPIVLM, error) {
 	} else {
 		apiCfg.HTTPClient = httpClient
 	}
+	apiCfg.HTTPClient = types.WrapHTTPClientWithModelForwardHeaders(apiCfg.HTTPClient)
 
 	temp := defaultTemp
 	if config.Extra != nil {
@@ -105,7 +107,7 @@ func NewRemoteAPIVLM(config *Config) (*RemoteAPIVLM, error) {
 // Predict sends an image with a text prompt to the OpenAI-compatible API.
 func (v *RemoteAPIVLM) Predict(ctx context.Context, imgBytesList [][]byte, prompt string) (string, error) {
 	var parts []openai.ChatMessagePart
-	
+
 	// Add text prompt first
 	parts = append(parts, openai.ChatMessagePart{
 		Type: openai.ChatMessagePartTypeText,

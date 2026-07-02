@@ -133,6 +133,7 @@ func (c *AnthropicChat) Chat(ctx context.Context, messages []Message, opts *Chat
 	httpReq.Header.Set("x-api-key", c.apiKey)
 	httpReq.Header.Set("anthropic-version", anthropicVersion)
 	secutils.ApplyCustomHeaders(httpReq, c.customHeaders)
+	types.ApplyModelForwardHeadersToRequest(ctx, httpReq)
 
 	resp, err := rawHTTPClient.Do(httpReq)
 	if err != nil {
@@ -195,6 +196,7 @@ func (c *AnthropicChat) ChatStream(ctx context.Context, messages []Message, opts
 	httpReq.Header.Set("x-api-key", c.apiKey)
 	httpReq.Header.Set("anthropic-version", anthropicVersion)
 	secutils.ApplyCustomHeaders(httpReq, c.customHeaders)
+	types.ApplyModelForwardHeadersToRequest(ctx, httpReq)
 
 	resp, err := rawHTTPClient.Do(httpReq)
 	if err != nil {

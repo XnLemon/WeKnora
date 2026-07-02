@@ -1,10 +1,13 @@
 package rerank
 
 import (
+	"context"
 	"testing"
 
+	"github.com/Tencent/WeKnora/internal/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	lkeap "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/lkeap/v20240522"
 )
 
 func TestNewLKEAPReranker_requiresCredentials(t *testing.T) {
@@ -64,4 +67,21 @@ func TestLKEAPReranker_Rerank_tooManyDocuments(t *testing.T) {
 	_, err = r.Rerank(t.Context(), "query", docs)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "60")
+}
+
+func TestApplyModelForwardHeadersToLKEAPRequest(t *testing.T) {
+	req := lkeap.NewRunRerankRequest()
+	ctx := types.WithModelForwardHeaders(context.Background(), map[string]string{
+		"X-Trace-Id":    "trace-1",
+		"X-Tenant-Id":   "tenant-a",
+		"Authorization": "Bearer gateway-token",
+	})
+
+	applyModelForwardHeadersToLKEAPRequest(ctx, req)
+
+	assert.Equal(t, map[string]string{
+		"X-Trace-Id":    "trace-1",
+		"X-Tenant-Id":   "tenant-a",
+		"Authorization": "Bearer gateway-token",
+	}, req.GetHeader())
 }

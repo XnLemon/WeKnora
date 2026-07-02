@@ -12,6 +12,7 @@ import (
 
 	"github.com/Tencent/WeKnora/internal/models/provider"
 	"github.com/Tencent/WeKnora/internal/models/utils"
+	"github.com/Tencent/WeKnora/internal/types"
 	"github.com/google/uuid"
 )
 
@@ -109,6 +110,7 @@ func (e *WeKnoraCloudEmbedder) BatchEmbed(ctx context.Context, texts []string) (
 	for k, v := range headers {
 		req.Header.Set(k, v)
 	}
+	types.ApplyModelForwardHeadersToRequest(ctx, req)
 
 	resp, err := e.client.Do(req)
 	if err != nil {

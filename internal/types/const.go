@@ -35,6 +35,9 @@ const (
 	// request lifecycle. Defined here (not inside the langfuse package) so
 	// that logger.CloneContext can preserve it without importing langfuse.
 	LangfuseTraceContextKey ContextKey = "LangfuseTrace"
+	// ModelForwardHeadersContextKey carries request-scoped HTTP headers that
+	// should be forwarded to downstream model calls for gateway attribution.
+	ModelForwardHeadersContextKey ContextKey = "ModelForwardHeaders"
 	// SystemAdminContextKey is the context key indicating whether the user is a system administrator
 	SystemAdminContextKey ContextKey = "SystemAdmin"
 	// MCPOAuthNonInteractiveContextKey marks a request whose channel cannot

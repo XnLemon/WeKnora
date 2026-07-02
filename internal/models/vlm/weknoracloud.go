@@ -12,6 +12,7 @@ import (
 
 	"github.com/Tencent/WeKnora/internal/logger"
 	"github.com/Tencent/WeKnora/internal/models/utils"
+	"github.com/Tencent/WeKnora/internal/types"
 	"github.com/google/uuid"
 )
 
@@ -56,9 +57,9 @@ func NewWeKnoraCloudVLM(config *Config) (*WeKnoraCloudVLM, error) {
 }
 
 type weKnoraCloudVLMContentPart struct {
-	Type     string                      `json:"type"`
-	Text     string                      `json:"text,omitempty"`
-	ImageURL *weKnoraCloudVLMImageURL    `json:"image_url,omitempty"`
+	Type     string                   `json:"type"`
+	Text     string                   `json:"text,omitempty"`
+	ImageURL *weKnoraCloudVLMImageURL `json:"image_url,omitempty"`
 }
 
 type weKnoraCloudVLMImageURL struct {
@@ -138,6 +139,7 @@ func (v *WeKnoraCloudVLM) Predict(ctx context.Context, imgBytesList [][]byte, pr
 	for k, hv := range headers {
 		req.Header.Set(k, hv)
 	}
+	types.ApplyModelForwardHeadersToRequest(ctx, req)
 
 	totalImageSize := 0
 	for _, img := range imgBytesList {

@@ -3,6 +3,8 @@ package chat
 import (
 	"context"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
@@ -25,6 +27,48 @@ func newTestRemoteChat(t *testing.T) *RemoteAPIChat {
 	})
 	require.NoError(t, err)
 	return chat
+}
+
+func TestRemoteAPIChatForwardsRequestScopedHeaders(t *testing.T) {
+	t.Setenv("SSRF_WHITELIST", "127.0.0.1")
+
+	var capturedHeaders http.Header
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		capturedHeaders = r.Header.Clone()
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{
+			"id":"chatcmpl_123",
+			"object":"chat.completion",
+			"choices":[{"index":0,"message":{"role":"assistant","content":"hello"},"finish_reason":"stop"}],
+			"usage":{"prompt_tokens":1,"completion_tokens":1,"total_tokens":2}
+		}`))
+	}))
+	defer server.Close()
+
+	chat, err := NewRemoteAPIChat(&ChatConfig{
+		Source:    types.ModelSourceRemote,
+		BaseURL:   server.URL + "/v1",
+		ModelName: "test-model",
+		APIKey:    "provider-token",
+		ModelID:   "test-model",
+		CustomHeaders: map[string]string{
+			"X-Trace-Id": "static-trace",
+		},
+	})
+	require.NoError(t, err)
+
+	ctx := types.WithModelForwardHeaders(context.Background(), map[string]string{
+		"X-Trace-Id":    "dynamic-trace",
+		"X-Tenant-Id":   "tenant-a",
+		"Authorization": "Bearer gateway-token",
+	})
+	resp, err := chat.Chat(ctx, []Message{{Role: "user", Content: "Hi"}}, nil)
+	require.NoError(t, err)
+
+	assert.Equal(t, "hello", resp.Content)
+	assert.Equal(t, "static-trace", capturedHeaders.Get("X-Trace-Id"))
+	assert.Equal(t, "tenant-a", capturedHeaders.Get("X-Tenant-Id"))
+	assert.Equal(t, "Bearer gateway-token", capturedHeaders.Get("Authorization"))
 }
 
 func TestBuildChatCompletionRequest_ParallelToolCalls(t *testing.T) {

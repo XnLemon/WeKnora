@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Tencent/WeKnora/internal/logger"
+	"github.com/Tencent/WeKnora/internal/types"
 	secutils "github.com/Tencent/WeKnora/internal/utils"
 )
 
@@ -179,6 +180,7 @@ func (e *VolcengineEmbedder) doRequestWithRetry(ctx context.Context, jsonData []
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+e.apiKey)
 		secutils.ApplyCustomHeaders(req, e.customHeaders)
+		types.ApplyModelForwardHeadersToRequest(ctx, req)
 
 		resp, err = e.httpClient.Do(req)
 		if err == nil {

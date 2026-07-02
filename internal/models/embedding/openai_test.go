@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/Tencent/WeKnora/internal/types"
 )
 
 func TestOpenAIEmbedderBatchEmbedOmitsDimensionsByDefault(t *testing.T) {
@@ -41,6 +43,53 @@ func TestOpenAIEmbedderBatchEmbedOmitsDimensionsForFixedSizeModels(t *testing.T)
 
 	if _, ok := requestBody["dimensions"]; ok {
 		t.Fatalf("expected request body to omit dimensions for fixed-size model, got %v", requestBody)
+	}
+}
+
+func TestOpenAIEmbedderForwardsRequestScopedHeaders(t *testing.T) {
+	t.Setenv("SSRF_WHITELIST", "127.0.0.1")
+
+	var capturedHeaders http.Header
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		capturedHeaders = r.Header.Clone()
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"data":[{"embedding":[0.1,0.2],"index":0}]}`))
+	}))
+	defer server.Close()
+
+	embedder, err := NewOpenAIEmbedder(
+		"provider-token",
+		server.URL,
+		"text-embedding-3-small",
+		511,
+		256,
+		"test-model",
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("NewOpenAIEmbedder: %v", err)
+	}
+	embedder.SetCustomHeaders(map[string]string{
+		"X-Trace-Id": "static-trace",
+	})
+
+	ctx := types.WithModelForwardHeaders(context.Background(), map[string]string{
+		"X-Trace-Id":    "dynamic-trace",
+		"X-Tenant-Id":   "tenant-a",
+		"Authorization": "Bearer gateway-token",
+	})
+	if _, err := embedder.BatchEmbed(ctx, []string{"hello"}); err != nil {
+		t.Fatalf("BatchEmbed: %v", err)
+	}
+
+	if got := capturedHeaders.Get("X-Trace-Id"); got != "static-trace" {
+		t.Fatalf("X-Trace-Id = %q, want static-trace", got)
+	}
+	if got := capturedHeaders.Get("X-Tenant-Id"); got != "tenant-a" {
+		t.Fatalf("X-Tenant-Id = %q, want tenant-a", got)
+	}
+	if got := capturedHeaders.Get("Authorization"); got != "Bearer gateway-token" {
+		t.Fatalf("Authorization = %q, want forwarded gateway token", got)
 	}
 }
 

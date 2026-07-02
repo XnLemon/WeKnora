@@ -80,6 +80,7 @@ func NewRemoteAPIChat(chatConfig *ChatConfig) (*RemoteAPIChat, error) {
 			config.HTTPClient = secutils.WrapHTTPClientWithHeaders(nil, chatConfig.CustomHeaders)
 		}
 	}
+	config.HTTPClient = types.WrapHTTPClientWithModelForwardHeaders(config.HTTPClient)
 
 	modelName := chatConfig.ModelName
 	if chatConfig.ExtraConfig != nil {
@@ -225,6 +226,7 @@ func (c *RemoteAPIChat) chatWithRawHTTP(ctx context.Context, endpoint string, cu
 
 	// 注入用户自定义 header（保留头会在工具内部自动跳过）
 	secutils.ApplyCustomHeaders(httpReq, c.customHeaders)
+	types.ApplyModelForwardHeadersToRequest(ctx, httpReq)
 
 	logger.Infof(ctx, "[LLM Request] Remote HTTP, endpoint=%s, model=%s",
 		endpoint, c.modelName)
@@ -360,6 +362,7 @@ func (c *RemoteAPIChat) chatStreamWithRawHTTP(ctx context.Context, endpoint stri
 
 	// 注入用户自定义 header（保留头会在工具内部自动跳过）
 	secutils.ApplyCustomHeaders(httpReq, c.customHeaders)
+	types.ApplyModelForwardHeadersToRequest(ctx, httpReq)
 
 	resp, err := rawHTTPClient.Do(httpReq)
 	if err != nil {

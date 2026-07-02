@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Tencent/WeKnora/internal/logger"
+	"github.com/Tencent/WeKnora/internal/types"
 	secutils "github.com/Tencent/WeKnora/internal/utils"
 	openai "github.com/sashabaranov/go-openai"
 )
@@ -42,6 +43,7 @@ func NewOpenAIASR(config *Config) (*OpenAIASR, error) {
 	} else {
 		apiCfg.HTTPClient = httpClient
 	}
+	apiCfg.HTTPClient = types.WrapHTTPClientWithModelForwardHeaders(apiCfg.HTTPClient)
 
 	return &OpenAIASR{
 		modelName: config.ModelName,

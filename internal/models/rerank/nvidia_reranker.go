@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/Tencent/WeKnora/internal/logger"
+	"github.com/Tencent/WeKnora/internal/types"
 	secutils "github.com/Tencent/WeKnora/internal/utils"
 )
 
@@ -27,6 +28,7 @@ type NvidiaReranker struct {
 func (r *NvidiaReranker) SetCustomHeaders(headers map[string]string) {
 	r.customHeaders = headers
 }
+
 type NvidiaRerankDocument struct {
 	Text string `json:"text"`
 }
@@ -96,6 +98,7 @@ func (r *NvidiaReranker) Rerank(ctx context.Context, query string, documents []s
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", r.apiKey))
 	secutils.ApplyCustomHeaders(req, r.customHeaders)
+	types.ApplyModelForwardHeadersToRequest(ctx, req)
 
 	// Log the curl equivalent for debugging (API key masked for security)
 	logger.GetLogger(ctx).Infof(

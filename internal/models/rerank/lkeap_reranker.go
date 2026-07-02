@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/Tencent/WeKnora/internal/logger"
+	"github.com/Tencent/WeKnora/internal/types"
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/profile"
 	lkeap "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/lkeap/v20240522"
@@ -80,6 +81,7 @@ func (r *LKEAPReranker) Rerank(ctx context.Context, query string, documents []st
 	req.Query = common.StringPtr(query)
 	req.Docs = common.StringPtrs(documents)
 	req.Model = common.StringPtr(r.modelName)
+	applyModelForwardHeadersToLKEAPRequest(ctx, req)
 
 	logger.Debugf(ctx, "%s", buildRerankRequestDebug(r.modelName, LKEAPRerankEndpoint, query, documents))
 
@@ -111,6 +113,14 @@ func (r *LKEAPReranker) Rerank(ctx context.Context, query string, documents []st
 		}
 	}
 	return results, nil
+}
+
+func applyModelForwardHeadersToLKEAPRequest(ctx context.Context, req *lkeap.RunRerankRequest) {
+	headers := types.ModelForwardHeadersFromContext(ctx)
+	if len(headers) == 0 || req == nil {
+		return
+	}
+	req.SetHeader(headers)
 }
 
 // GetModelName returns the rerank model name.

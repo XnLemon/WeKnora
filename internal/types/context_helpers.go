@@ -2,6 +2,7 @@ package types
 
 import (
 	"context"
+	"net/http"
 	"os"
 	"strings"
 )
@@ -46,6 +47,121 @@ func TenantInfoFromContext(ctx context.Context) (*Tenant, bool) {
 func RequestIDFromContext(ctx context.Context) (string, bool) {
 	v, ok := ctx.Value(RequestIDContextKey).(string)
 	return v, ok && v != ""
+}
+
+// WithModelForwardHeaders attaches a defensive copy of request-scoped headers
+// that should be forwarded to downstream model providers.
+func WithModelForwardHeaders(ctx context.Context, headers map[string]string) context.Context {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if len(headers) == 0 {
+		return ctx
+	}
+	return context.WithValue(ctx, ModelForwardHeadersContextKey, cloneStringMap(headers))
+}
+
+// ModelForwardHeadersFromContext returns a defensive copy of model forwarding
+// headers previously attached with WithModelForwardHeaders.
+func ModelForwardHeadersFromContext(ctx context.Context) map[string]string {
+	if ctx == nil {
+		return nil
+	}
+	headers, ok := ctx.Value(ModelForwardHeadersContextKey).(map[string]string)
+	if !ok || len(headers) == 0 {
+		return nil
+	}
+	return cloneStringMap(headers)
+}
+
+// ApplyModelForwardHeadersToRequest writes request-scoped model forwarding
+// headers onto req. Non-reserved headers fill gaps only, preserving static
+// model custom_headers. Reserved headers are present only after explicit
+// operator opt-in, so they intentionally override provider-auth defaults.
+func ApplyModelForwardHeadersToRequest(ctx context.Context, req *http.Request) {
+	if req == nil {
+		return
+	}
+	for name, value := range ModelForwardHeadersFromContext(ctx) {
+		key := http.CanonicalHeaderKey(strings.TrimSpace(name))
+		if key == "" {
+			continue
+		}
+		if isReservedModelHeader(key) || req.Header.Get(key) == "" {
+			req.Header.Set(key, value)
+		}
+	}
+}
+
+type httpDoer interface {
+	Do(*http.Request) (*http.Response, error)
+}
+
+// WrapHTTPClientWithModelForwardHeaders returns an HTTP client/doer whose
+// outgoing requests inject request-scoped model forwarding headers from
+// req.Context().
+func WrapHTTPClientWithModelForwardHeaders(client httpDoer) httpDoer {
+	if client == nil {
+		client = &http.Client{}
+	}
+
+	if httpClient, ok := client.(*http.Client); ok {
+		base := httpClient.Transport
+		if base == nil {
+			base = http.DefaultTransport
+		}
+		wrapped := *httpClient
+		wrapped.Transport = modelForwardHeadersRoundTripper{Base: base}
+		return &wrapped
+	}
+
+	return modelForwardHeadersDoer{Base: client}
+}
+
+type modelForwardHeadersDoer struct {
+	Base httpDoer
+}
+
+func (d modelForwardHeadersDoer) Do(req *http.Request) (*http.Response, error) {
+	cloned := req.Clone(req.Context())
+	ApplyModelForwardHeadersToRequest(cloned.Context(), cloned)
+	return d.Base.Do(cloned)
+}
+
+type modelForwardHeadersRoundTripper struct {
+	Base http.RoundTripper
+}
+
+func (t modelForwardHeadersRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	base := t.Base
+	if base == nil {
+		base = http.DefaultTransport
+	}
+	cloned := req.Clone(req.Context())
+	ApplyModelForwardHeadersToRequest(cloned.Context(), cloned)
+	return base.RoundTrip(cloned)
+}
+
+func isReservedModelHeader(key string) bool {
+	switch strings.ToLower(strings.TrimSpace(key)) {
+	case "authorization", "api-key", "x-api-key", "x-goog-api-key",
+		"content-type", "content-length", "accept-encoding", "host",
+		"connection", "transfer-encoding":
+		return true
+	default:
+		return false
+	}
+}
+
+func cloneStringMap(in map[string]string) map[string]string {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make(map[string]string, len(in))
+	for k, v := range in {
+		out[k] = v
+	}
+	return out
 }
 
 // UserIDFromContext extracts the user ID string from ctx.

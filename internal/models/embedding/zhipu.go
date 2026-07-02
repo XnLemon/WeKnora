@@ -11,6 +11,7 @@ import (
 
 	"github.com/Tencent/WeKnora/internal/logger"
 	"github.com/Tencent/WeKnora/internal/models/provider"
+	"github.com/Tencent/WeKnora/internal/types"
 	secutils "github.com/Tencent/WeKnora/internal/utils"
 )
 
@@ -136,6 +137,7 @@ func (e *ZhipuEmbedder) doRequestWithRetry(ctx context.Context, jsonData []byte)
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+e.apiKey)
 		secutils.ApplyCustomHeaders(req, e.customHeaders)
+		types.ApplyModelForwardHeadersToRequest(ctx, req)
 
 		resp, err = e.httpClient.Do(req)
 		if err == nil {

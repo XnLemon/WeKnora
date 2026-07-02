@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Tencent/WeKnora/internal/models/utils"
+	"github.com/Tencent/WeKnora/internal/types"
 	"github.com/google/uuid"
 )
 
@@ -88,6 +89,7 @@ func (r *WeKnoraCloudReranker) Rerank(ctx context.Context, query string, documen
 	for k, v := range headers {
 		req.Header.Set(k, v)
 	}
+	types.ApplyModelForwardHeadersToRequest(ctx, req)
 
 	resp, err := r.client.Do(req)
 	if err != nil {
